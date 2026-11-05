@@ -1,29 +1,4 @@
-/*
- * Competição de Ordenação: O Desafio dos Milissegundos
- * ----------------------------------------------------
- * Lê uma lista de inteiros (um por linha), ordena em ordem crescente
- * e mede APENAS o tempo da ordenação com clock() (sem I/O de disco).
- *
- * Estratégia (híbrida, escolhida automaticamente):
- *   1) Counting Sort  - O(N + K): quando o intervalo de valores (K = max-min+1)
- *      é pequeno em relação a N. É o caso do arquivo da competição
- *      (10.000.000 de números entre 1 e 2.500.000).
- *   2) Radix Sort LSD - O(N): 4 passadas de 8 bits sobre inteiros de 32 bits,
- *      para qualquer outra entrada (inclusive números negativos).
- *   Ambos são estáveis, não usam recursão e não perdem elementos.
- *
- * Compilação:  gcc -O3 -march=native -o ordenacao ordenacao.c
- * Execução:    ./ordenacao ListahAhSerOrdenada.txt [saida.txt]
- */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <time.h>
 
-/* ------------------------------------------------------------------ */
-/* Leitura rápida: carrega o arquivo inteiro na memória e converte     */
-/* ------------------------------------------------------------------ */
 static int32_t *lerArquivo(const char *caminho, size_t *total)
 {
     FILE *f = fopen(caminho, "rb");
@@ -39,14 +14,14 @@ static int32_t *lerArquivo(const char *caminho, size_t *total)
     fclose(f);
     buf[lidos] = '\0';
 
-    /* Capacidade inicial: no máximo um número a cada 2 bytes ("1\n") */
+    
     size_t cap = lidos / 2 + 1, n = 0;
     int32_t *v = malloc(cap * sizeof(int32_t));
     if (!v) { free(buf); fprintf(stderr, "Sem memória\n"); return NULL; }
 
     char *p = buf, *fim = buf + lidos;
     while (p < fim) {
-        /* pula qualquer coisa que não seja dígito ou sinal */
+        
         while (p < fim && !(*p == '-' || (*p >= '0' && *p <= '9'))) p++;
         if (p >= fim) break;
 
@@ -55,7 +30,7 @@ static int32_t *lerArquivo(const char *caminho, size_t *total)
         int64_t x = 0;
         while (p < fim && *p >= '0' && *p <= '9') x = x * 10 + (*p++ - '0');
 
-        if (n == cap) {                       /* segurança: realoca */
+        if (n == cap) {                       
             cap *= 2;
             int32_t *tmp = realloc(v, cap * sizeof(int32_t));
             if (!tmp) { free(v); free(buf); return NULL; }
@@ -68,10 +43,7 @@ static int32_t *lerArquivo(const char *caminho, size_t *total)
     return v;
 }
 
-/* ------------------------------------------------------------------ */
-/* Counting Sort: conta quantas vezes cada valor aparece e reescreve   */
-/* o vetor em ordem. Retorna 0 se não conseguiu alocar memória.        */
-/* ------------------------------------------------------------------ */
+
 static int countingSort(int32_t *v, size_t n, int32_t min, int32_t max)
 {
     size_t k = (size_t)((int64_t)max - min + 1);
@@ -90,10 +62,7 @@ static int countingSort(int32_t *v, size_t n, int32_t min, int32_t max)
     return 1;
 }
 
-/* ------------------------------------------------------------------ */
-/* Radix Sort LSD (base 256, 4 passadas). O XOR com 0x80000000 faz os  */
-/* negativos ficarem antes dos positivos.                              */
-/* ------------------------------------------------------------------ */
+
 static int radixSort(int32_t *v, size_t n)
 {
     uint32_t *a = (uint32_t *)v;
@@ -103,7 +72,7 @@ static int radixSort(int32_t *v, size_t n)
     size_t hist[4][256];
     memset(hist, 0, sizeof(hist));
 
-    /* um único laço monta os 4 histogramas */
+    
     for (size_t i = 0; i < n; i++) {
         uint32_t x = a[i] ^ 0x80000000u;
         hist[0][x & 0xFF]++;
@@ -115,9 +84,9 @@ static int radixSort(int32_t *v, size_t n)
     uint32_t *src = a, *dst = b;
     for (int pass = 0; pass < 4; pass++) {
         size_t *h = hist[pass];
-        if (h[(src[0] ^ 0x80000000u) >> (pass * 8) & 0xFF] == n) continue; /* byte igual em todos: pula */
+        if (h[(src[0] ^ 0x80000000u) >> (pass * 8) & 0xFF] == n) continue; 
 
-        size_t soma = 0;                       /* prefixo -> posições iniciais */
+        size_t soma = 0;                       
         for (int d = 0; d < 256; d++) { size_t t = h[d]; h[d] = soma; soma += t; }
 
         int sh = pass * 8;
@@ -132,9 +101,7 @@ static int radixSort(int32_t *v, size_t n)
     return 1;
 }
 
-/* ------------------------------------------------------------------ */
-/* Função principal de ordenação (é ela que o cronômetro mede)         */
-/* ------------------------------------------------------------------ */
+
 static const char *algoritmoUsado = "";
 
 static void ordenarVetor(int32_t *v, size_t n)
@@ -148,7 +115,7 @@ static void ordenarVetor(int32_t *v, size_t n)
     }
     uint64_t k = (uint64_t)((int64_t)max - min) + 1;
 
-    /* Counting sort compensa quando o intervalo não é muito maior que N */
+    
     if (k <= (uint64_t)n * 2 && countingSort(v, n, min, max)) {
         algoritmoUsado = "Counting Sort";
         return;
@@ -159,9 +126,7 @@ static void ordenarVetor(int32_t *v, size_t n)
     exit(1);
 }
 
-/* ------------------------------------------------------------------ */
-/* Verificação: ordem crescente + mesma quantidade + mesma soma        */
-/* ------------------------------------------------------------------ */
+
 static int estaOrdenado(const int32_t *v, size_t n)
 {
     for (size_t i = 1; i < n; i++)
@@ -181,17 +146,17 @@ int main(int argc, char **argv)
     const char *entrada = argc > 1 ? argv[1] : "ListahAhSerOrdenada.txt";
 
     size_t n = 0;
-    int32_t *vetor = lerArquivo(entrada, &n);       /* I/O: fora da medição */
+    int32_t *vetor = lerArquivo(entrada, &n);       
     if (!vetor) return 1;
     printf("Elementos lidos: %zu\n", n);
 
     int64_t somaAntes = somar(vetor, n);
 
-    /* ===== Cronômetro: SOMENTE a ordenação ===== */
+    
     clock_t inicio = clock();
     ordenarVetor(vetor, n);
     clock_t fim = clock();
-    /* =========================================== */
+    
 
     double tempo_gasto = ((double)(fim - inicio)) / CLOCKS_PER_SEC;
     printf("Algoritmo: %s\n", algoritmoUsado);
@@ -202,7 +167,7 @@ int main(int argc, char **argv)
            ok ? "OK" : "FALHOU", n, (long long)somaAntes);
     if (n) printf("Menor: %d | Maior: %d\n", vetor[0], vetor[n - 1]);
 
-    if (argc > 2) {                                  /* opcional: grava saída */
+    if (argc > 2) {                                  
         FILE *out = fopen(argv[2], "w");
         if (out) {
             for (size_t i = 0; i < n; i++) fprintf(out, "%d\n", vetor[i]);
